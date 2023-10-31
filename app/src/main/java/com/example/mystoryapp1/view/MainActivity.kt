@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
@@ -17,6 +18,7 @@ import androidx.core.app.ActivityOptionsCompat
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.mystoryapp1.R
+import com.example.mystoryapp1.adapter.LoadingStateAdapter
 import com.example.mystoryapp1.adapter.UserAdapter
 import com.example.mystoryapp1.data.Result
 import com.example.mystoryapp1.data.response.ListStoryItem
@@ -37,6 +39,11 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        val layoutManager = LinearLayoutManager(this)
+        binding.storyRV.layoutManager = layoutManager
+
+        val item = DividerItemDecoration(this, layoutManager.orientation)
+        binding.storyRV.addItemDecoration(item)
 
         viewModel.getSession().observe(this) { user ->
             if (!user.isLogin) {
@@ -51,51 +58,40 @@ class MainActivity : AppCompatActivity() {
 
     }
 private  fun showStory(){
-    val layoutManager = LinearLayoutManager(this)
-    binding.storyRV.layoutManager = layoutManager
 
-    val item = DividerItemDecoration(this, layoutManager.orientation)
-    binding.storyRV.addItemDecoration(item)
-
-    viewModel.getSession().observe(this){session->
-        if (!session.isLogin){
-            val intent= Intent(this,LoginActivity::class.java)
-            startActivity(intent)
-        }else{
-            viewModel.getStory().observe(this){item->
-                if (item != null){
-                    when(item){
-                        is Result.Loading ->{
-                            showLoading(isLoading = true)
-                        }
-                        is Result.Success -> {
-                            val dataStory = item.data
-                            val storyAdapter =UserAdapter(object : UserAdapter.OnItemClickCallBack{
-                                override fun onItemClicked(data: ListStoryItem) {
-                                   val intent = Intent(this@MainActivity,DetailActivity::class.java)
-                                    intent.putExtra(DetailActivity.EXTRA_PHOTO, data.photoUrl)
-                                    intent.putExtra(DetailActivity.EXTRA_DESCRIPTION, data.description)
-                                    intent.putExtra(DetailActivity.EXTRA_NAME, data.name)
-                                    binding.storyRV.context.startActivity(intent,ActivityOptionsCompat.makeSceneTransitionAnimation(binding.storyRV.context as Activity).toBundle())
-                                }
-                            })
-                            showLoading(isLoading = false)
-                            storyAdapter.submitList(dataStory)
-                            binding.storyRV.adapter = storyAdapter
-                        }
-                        is Result.Error-> {
-                            showLoading(isLoading = false)
-                            showToast(item.error)
-                        }
+            viewModel.story().observe(this) { data ->
+                val storyAdapter =UserAdapter(object : UserAdapter.OnItemClickCallBack{
+                    override fun onItemClicked(data: ListStoryItem) {
+                        val intent = Intent(this@MainActivity,DetailActivity::class.java)
+                        intent.putExtra(DetailActivity.EXTRA_PHOTO, data.photoUrl)
+                        intent.putExtra(DetailActivity.EXTRA_DESCRIPTION, data.description)
+                        intent.putExtra(DetailActivity.EXTRA_NAME, data.name)
+                        binding.storyRV.context.startActivity(intent,ActivityOptionsCompat.makeSceneTransitionAnimation(binding.storyRV.context as Activity).toBundle())
                     }
-                }
+
+
+
+
+                })
+
+                binding.storyRV.adapter = storyAdapter.withLoadStateFooter(
+                    footer = LoadingStateAdapter{
+                        storyAdapter.retry()
+                    }
+                )
+                storyAdapter.submitData(lifecycle, data)
+
             }
-        }
+
     }
-}
+
+
+
+
+
     override fun onResume() {
         super.onResume()
-        viewModel.getStory()
+        viewModel.story()
     }
     private fun setupView() {
         @Suppress("DEPRECATION")
@@ -120,6 +116,12 @@ private  fun showStory(){
                 val intent = Intent(this, AddStoryActivity::class.java)
                 val options = ActivityOptionsCompat.makeSceneTransitionAnimation(this)
                 ActivityCompat.startActivity(this, intent, options.toBundle())
+                true
+            }
+            R.id.btn_map ->{
+                val intent = Intent(this, MapsActivity::class.java)
+                val option = ActivityOptionsCompat.makeSceneTransitionAnimation(this)
+                ActivityCompat.startActivity(this,intent,option.toBundle())
                 true
             }
             else->false

@@ -2,6 +2,12 @@ package com.example.mystoryapp1.data
 
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.liveData
+import androidx.paging.Pager
+import androidx.paging.PagingConfig
+import androidx.paging.PagingData
+import androidx.paging.liveData
+import com.example.mystoryapp1.data.local.StoryPagingSource
+
 import com.example.mystoryapp1.data.pref.UserModel
 import com.example.mystoryapp1.data.pref.UserPreference
 import com.example.mystoryapp1.data.response.AddResponse
@@ -21,9 +27,8 @@ import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import retrofit2.HttpException
 import java.io.File
-import java.net.SocketTimeoutException
 
-class UserRepository private constructor( private val apiService: ApiService,private val userPreference: UserPreference ) {
+class UserRepository private constructor(private val apiService: ApiService,private val userPreference: UserPreference ) {
 
     fun userRegistrasi(name:String,email:String, password:String):LiveData<Result<RegisterResponse>> = liveData{
       emit(Result.Loading)
@@ -92,40 +97,36 @@ class UserRepository private constructor( private val apiService: ApiService,pri
             emit(errorResponse?.message?.let { Result.Error(it) })
         }
     }
-    fun getStoryUser(): LiveData<Result<List<ListStoryItem>>> = liveData {
+    fun getStoryUser():LiveData<PagingData<ListStoryItem>> {
+
+        return Pager(
+            config = PagingConfig(pageSize = 5),
+            pagingSourceFactory = {
+                StoryPagingSource(apiService)
+
+            }
+        ).liveData
+    }
+
+    fun getLocation():LiveData<Result<List<ListStoryItem>>> = liveData {
         emit(Result.Loading)
         try {
             val userPref = runBlocking { userPreference.getSession().first() }
             val response = ApiConfig.getApiService(userPref.token)
-            val storyResponse = response.getStories()
-            val story = storyResponse.listStory
-            val storyList = story.map { data ->
-                ListStoryItem(
-                    data?.photoUrl,
-                    data?.createdAt,
-                    data?.name,
-                    data?.description,
-                    data?.lat,
-                    data?.id,
-                    data?.lon,
+            val locationResponse = response.getStoriesWithLocation()
+            val location = locationResponse.listStory
 
-                    )
-            }
-
-            if (storyResponse.error == false){
-                emit(Result.Success(storyList))
+            if (locationResponse.error == false){
+                emit(Result.Success(location.filterNotNull()))
             }else{
-                emit(Result.Error(storyResponse.message ?: "Error"))
+                emit(Result.Error(locationResponse.message ?: "Error"))
             }
-        }catch (e: HttpException){
+
+        }catch (e:HttpException){
             val jsonInString = e.response()?.errorBody()?.string()
             val errorBody = Gson().fromJson(jsonInString, ErrorResponse::class.java)
             val errorMessage = errorBody?.message ?: "An error occurred"
             emit(Result.Error("Failed: $errorMessage"))
-        }catch (e: Exception){
-            emit(Result.Error("Internet Issues"))
-        }catch (e: SocketTimeoutException){
-            emit(Result.Error("Read timeout occurred"))
         }
     }
     suspend fun saveSession(user: UserModel) {
@@ -144,10 +145,10 @@ class UserRepository private constructor( private val apiService: ApiService,pri
         @Volatile
         private var instance: UserRepository? = null
         fun getInstance(
-            apiService: ApiService, userPreference: UserPreference
+             apiService: ApiService, userPreference: UserPreference
         ): UserRepository =
             instance ?: synchronized(this) {
-                instance ?: UserRepository(apiService,userPreference)
+                instance ?: UserRepository( apiService, userPreference)
             }.also { instance = it }
     }
 }

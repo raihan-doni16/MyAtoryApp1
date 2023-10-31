@@ -10,8 +10,8 @@
         android:id="@+id/story_RV"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        tools:layout_editor_absoluteX="-16dp"
-        tools:layout_editor_absoluteY="-227dp"
+        tools:layout_editor_absoluteX="-145dp"
+        tools:layout_editor_absoluteY="16dp"
         tools:listitem="@layout/list_story" />
 
     <ProgressBar
@@ -23,5 +23,7 @@
         app:layout_constraintEnd_toEndOf="@id/story_RV"
         app:layout_constraintStart_toStartOf="@id/story_RV"
         app:layout_constraintTop_toTopOf="@id/story_RV" />
+
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>

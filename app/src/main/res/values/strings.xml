@@ -24,4 +24,6 @@
     <string name="descripsi">Descripsi</string>
     <string name="signuplink">SignUp !!</string>
     <string name="signinlink">SignIn</string>
+    <string name="title_activity_maps">MapsActivity</string>
+    <string name="retry">Coba Lagi\n</string>
 </resources>
