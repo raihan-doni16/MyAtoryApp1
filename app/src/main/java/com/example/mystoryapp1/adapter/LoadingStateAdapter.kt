@@ -9,11 +9,11 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.mystoryapp1.databinding.ItemLoadingBinding
 
 class LoadingStateAdapter(private  val retry:()->Unit): LoadStateAdapter<LoadingStateAdapter.LoadingStateViewHolder>() {
-    override fun onBindViewHolder(holder: LoadingStateAdapter.LoadingStateViewHolder, loadState: LoadState) {
+    override fun onBindViewHolder(holder: LoadingStateViewHolder, loadState: LoadState) {
         holder.bind(loadState)
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, loadState: LoadState): LoadingStateAdapter.LoadingStateViewHolder {
+    override fun onCreateViewHolder(parent: ViewGroup, loadState: LoadState): LoadingStateViewHolder {
       val binding= ItemLoadingBinding.inflate(LayoutInflater.from(parent.context),parent,false)
         return  LoadingStateViewHolder(binding,retry)
     }

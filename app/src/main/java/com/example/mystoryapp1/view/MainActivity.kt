@@ -81,6 +81,7 @@ private  fun showStory(){
                 )
                 storyAdapter.submitData(lifecycle, data)
 
+
             }
 
     }
@@ -92,6 +93,7 @@ private  fun showStory(){
     override fun onResume() {
         super.onResume()
         viewModel.story()
+
     }
     private fun setupView() {
         @Suppress("DEPRECATION")

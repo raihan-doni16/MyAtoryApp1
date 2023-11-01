@@ -2,11 +2,13 @@ package com.example.mystoryapp1.data
 
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.liveData
+import androidx.paging.ExperimentalPagingApi
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.liveData
-import com.example.mystoryapp1.data.local.StoryPagingSource
+import com.example.mystoryapp1.data.local.StoryDatabase
+import com.example.mystoryapp1.data.local.StoryRemoteMediator
 
 import com.example.mystoryapp1.data.pref.UserModel
 import com.example.mystoryapp1.data.pref.UserPreference
@@ -28,7 +30,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import retrofit2.HttpException
 import java.io.File
 
-class UserRepository private constructor(private val apiService: ApiService,private val userPreference: UserPreference ) {
+class UserRepository private constructor(private val storyDatabase: StoryDatabase,private val apiService: ApiService,private val userPreference: UserPreference ) {
 
     fun userRegistrasi(name:String,email:String, password:String):LiveData<Result<RegisterResponse>> = liveData{
       emit(Result.Loading)
@@ -98,11 +100,12 @@ class UserRepository private constructor(private val apiService: ApiService,priv
         }
     }
     fun getStoryUser():LiveData<PagingData<ListStoryItem>> {
-
+        @OptIn(ExperimentalPagingApi::class)
         return Pager(
             config = PagingConfig(pageSize = 5),
+            remoteMediator = StoryRemoteMediator(storyDatabase, apiService),
             pagingSourceFactory = {
-                StoryPagingSource(apiService)
+                storyDatabase.storyDao().getAllStory()
 
             }
         ).liveData
@@ -145,10 +148,10 @@ class UserRepository private constructor(private val apiService: ApiService,priv
         @Volatile
         private var instance: UserRepository? = null
         fun getInstance(
-             apiService: ApiService, userPreference: UserPreference
+             storyDatabase: StoryDatabase, apiService: ApiService, userPreference: UserPreference
         ): UserRepository =
             instance ?: synchronized(this) {
-                instance ?: UserRepository( apiService, userPreference)
+                instance ?: UserRepository( storyDatabase,apiService, userPreference)
             }.also { instance = it }
     }
 }
