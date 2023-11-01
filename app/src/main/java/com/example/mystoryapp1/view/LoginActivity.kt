@@ -96,6 +96,7 @@ class LoginActivity : AppCompatActivity() {
                                 showLoading(isLoading = false)
                                 viewModel.saveSession(dataUser)
                                 finish()
+                                onDestroy()
                             }
                             is Result.Error ->{
                                 showLoading(isLoading = false)

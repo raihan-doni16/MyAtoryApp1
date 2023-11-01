@@ -2,14 +2,11 @@ package com.example.mystoryapp1.data
 
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.liveData
-import androidx.paging.ExperimentalPagingApi
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.liveData
-import com.example.mystoryapp1.data.local.StoryDatabase
-import com.example.mystoryapp1.data.local.StoryRemoteMediator
-
+import com.example.mystoryapp1.data.local.StoryPagingSource
 import com.example.mystoryapp1.data.pref.UserModel
 import com.example.mystoryapp1.data.pref.UserPreference
 import com.example.mystoryapp1.data.response.AddResponse
@@ -30,7 +27,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import retrofit2.HttpException
 import java.io.File
 
-class UserRepository private constructor(private val storyDatabase: StoryDatabase,private val apiService: ApiService,private val userPreference: UserPreference ) {
+class UserRepository private constructor(private val apiService: ApiService,private val userPreference: UserPreference ) {
 
     fun userRegistrasi(name:String,email:String, password:String):LiveData<Result<RegisterResponse>> = liveData{
       emit(Result.Loading)
@@ -100,13 +97,13 @@ class UserRepository private constructor(private val storyDatabase: StoryDatabas
         }
     }
     fun getStoryUser():LiveData<PagingData<ListStoryItem>> {
-        @OptIn(ExperimentalPagingApi::class)
+
         return Pager(
             config = PagingConfig(pageSize = 5),
-            remoteMediator = StoryRemoteMediator(storyDatabase, apiService),
-            pagingSourceFactory = {
-                storyDatabase.storyDao().getAllStory()
 
+            pagingSourceFactory = {
+
+                StoryPagingSource(apiService)
             }
         ).liveData
     }
@@ -120,7 +117,7 @@ class UserRepository private constructor(private val storyDatabase: StoryDatabas
             val location = locationResponse.listStory
 
             if (locationResponse.error == false){
-                emit(Result.Success(location.filterNotNull()))
+                emit(Result.Success(location))
             }else{
                 emit(Result.Error(locationResponse.message ?: "Error"))
             }
@@ -148,10 +145,10 @@ class UserRepository private constructor(private val storyDatabase: StoryDatabas
         @Volatile
         private var instance: UserRepository? = null
         fun getInstance(
-             storyDatabase: StoryDatabase, apiService: ApiService, userPreference: UserPreference
+             apiService: ApiService, userPreference: UserPreference
         ): UserRepository =
             instance ?: synchronized(this) {
-                instance ?: UserRepository( storyDatabase,apiService, userPreference)
+                instance ?: UserRepository( apiService, userPreference)
             }.also { instance = it }
     }
 }
